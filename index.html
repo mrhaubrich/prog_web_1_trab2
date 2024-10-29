@@ -11,6 +11,23 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
+    <style>
+      /* position animation */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* comment section */
+      .comment-section {
+        animation: fadeIn 0.5s;
+        animation-fill-mode: forwards;
+      }
+    </style>
   </head>
   <body>
     <!-- Skeleton template -->
@@ -46,6 +63,10 @@
           <button class="btn btn-primary" id="comment-btn">
             View Comments
           </button>
+          <div id="comments-id" class="p-2 mt-2 card d-none comment-section">
+            <p>Comments:</p>
+            <div id="comments-container"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -59,49 +80,46 @@
       </div>
     </div>
 
-    <!-- Modal for comments -->
     <div
-      class="modal fade"
-      id="commentsModal"
-      tabindex="-1"
-      aria-labelledby="commentsModalLabel"
-      aria-hidden="true"
+      id="show-all-btn"
+      class="btn btn-primary mx-auto d-block rounded-0 rounded-bottom position-sticky top-0 z-3"
     >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="commentsModalLabel">Comments</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body" id="comments-container">
-            <!-- Comments or skeleton will be loaded here -->
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
+      Show All Comments
     </div>
-
     <!-- A list that has all posts as a flex col -->
     <div class="container d-flex flex-column p-2" id="posts-container"></div>
 
     <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script>
+      let posts = [];
       $(document).ready(function () {
         const postsContainer = $("#posts-container");
+        $("#show-all-btn").click(function () {
+          posts.forEach((post) => {
+            const commentsContainer = $(`#comments-${post.id}`);
+            commentsContainer.removeClass("d-none");
+
+            // Clear previous comments and show skeleton
+            commentsContainer.empty();
+            for (let i = 0; i < 2; i++) {
+              const skeletonComment = $("#skeleton-comment").clone();
+              skeletonComment.removeClass("d-none");
+              commentsContainer.append(skeletonComment);
+            }
+
+            // Fetch comments
+            fetchComments(post.id).then((comments) => {
+              // Clear skeletons and display actual comments
+              commentsContainer.empty();
+              comments.forEach((comment) => {
+                commentsContainer.append(
+                  `<p><strong>${comment.name}</strong> - ${comment.body}</p>`
+                );
+              });
+            });
+          });
+        });
 
         // Show 5 skeleton loaders while data loads
         for (let i = 0; i < 5; i++) {
@@ -118,6 +136,8 @@
             // Clear skeletons
             postsContainer.empty();
 
+            posts = data;
+
             // Populate posts
             data.forEach((post) => {
               const postTemplate = $("#post-template").clone();
@@ -125,21 +145,25 @@
               postTemplate.find("#post-title").text(post.title);
               postTemplate.find("#post-user").text(`User ID: ${post.userId}`);
               postTemplate.find("#post-body").text(post.body);
+              postTemplate
+                .find("#comments-id")
+                .attr("id", `comments-${post.id}`);
 
               // Handle comments
               postTemplate.find("#comment-btn").click(function () {
-                const commentsContainer = $("#comments-container");
+                const commentsContainer = postTemplate.find(
+                  "#comments-container"
+                );
+
+                $(`#comments-${post.id}`).removeClass("d-none");
 
                 // Clear previous comments and show skeleton
                 commentsContainer.empty();
-                for (let i = 0; i < 5; i++) {
+                for (let i = 0; i < 2; i++) {
                   const skeletonComment = $("#skeleton-comment").clone();
                   skeletonComment.removeClass("d-none");
                   commentsContainer.append(skeletonComment);
                 }
-
-                // Open the modal
-                $("#commentsModal").modal("show");
 
                 // Fetch comments
                 fetchComments(post.id).then((comments) => {
